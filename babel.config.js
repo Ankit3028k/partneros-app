@@ -13,6 +13,8 @@ module.exports = {
           '@partneros/intent': './packages/intent/src',
           '@partneros/llm': './packages/llm/src',
           '@partneros/app': './packages/app/src',
+          '@partneros/planner': './packages/planner/src',
+          '@partneros/device': './packages/device/src',
         },
       },
     ],

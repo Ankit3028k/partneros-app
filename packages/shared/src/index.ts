@@ -28,7 +28,7 @@ export interface VectorMemoryProvider extends MemoryProvider {
 }
 
 export type ConversationRole = 'user' | 'assistant' | 'system';
-export type IntentType = 'GREETING' | 'FAREWELL' | 'IDENTITY' | 'SMALL_TALK' | 'KNOWLEDGE_QUERY' | 'MEMORY_QUERY' | 'SEARCH_QUERY' | 'TASK' | 'UNKNOWN';
+export type IntentType = 'GREETING' | 'FAREWELL' | 'IDENTITY' | 'SMALL_TALK' | 'KNOWLEDGE_QUERY' | 'MEMORY_QUERY' | 'SEARCH_QUERY' | 'TASK' | 'COMMAND' | 'UNKNOWN';
 
 export interface ConversationMessage {
   role: ConversationRole;

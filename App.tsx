@@ -13,6 +13,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { initializeApp } from '@partneros/app';
 import { PartnerOS } from '@partneros/app';
+import { PermissionPrompt } from '@partneros/app';
 
 type Message = {
   id: string;
@@ -120,6 +121,7 @@ function App(): React.JSX.Element {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      <PermissionPrompt />
     </SafeAreaProvider>
   );
 }

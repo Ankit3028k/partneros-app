@@ -29,6 +29,20 @@ const IDENTITY_PATTERNS = [
   /\btell\s+me\s+about\s+yourself\b/i,
 ];
 
+// Device/app-control commands -- routed to ActionPlanner + DeviceExecutor
+// by the app layer (see packages/app/src/PartnerOS.ts). IntentClassifier
+// only detects these are commands; it never resolves apps/contacts itself.
+const COMMAND_PATTERNS = [
+  /\bopen\s+(whatsapp|instagram|telegram|maps|spotify|camera|phone|dialer)\b/i,
+  /\b(launch|start)\s+(whatsapp|instagram|telegram|maps|spotify|camera)\b/i,
+  /\bopen\s+\w+\s+(and\s+)?send\b/i,
+  /\b(call|dial)\s+\w+/i,
+  /\b(send|text|message)\s+\w+\s+(on|via|through)\s+(whatsapp|telegram|instagram)/i,
+  /\b(set\s+an?\s+alarm|remind\s+me)\b/i,
+  /\bturn\s+(on|off)\s+(the\s+)?flashlight\b/i,
+  /\b(create|add)\s+(an?\s+)?(event|reminder)\b/i,
+];
+
 const HINGLISH_WORDS = ['kya', 'kaun', 'kaha', 'kahan', 'kaise', 'kese', 'kyu', 'kyun', 'ho', 'hai', 'hain', 'hu', 'hoon', 'tum', 'aap', 'tu', 'mera', 'tera', 'apna', 'naam', 'thik', 'theek', 'achha', 'accha', 'badhiya', 'sab', 'kuch', 'nahi', 'haan', 'haha', 'arre', 'arey', 'bole', 'bol', 'bolo', 'bolti', 'rehti', 'rahti', 'rehta', 'rahta', 'sakta', 'sakti', 'sakte', 'bat', 'baat', 'scene', 'chal', 'chalo'];
 
 function detectLanguage(text: string): 'hi' | 'hinglish' | 'en' {
@@ -67,6 +81,9 @@ export class IntentClassifier {
 
       const identityScore = matchPattern(lower, IDENTITY_PATTERNS);
       if (identityScore > 0.2 && identityScore > confidence) { type = 'IDENTITY'; confidence = identityScore; }
+
+      const commandScore = matchPattern(lower, COMMAND_PATTERNS);
+      if (commandScore > 0.15 && commandScore >= confidence) { type = 'COMMAND'; confidence = Math.max(commandScore, 0.5); }
 
       const isQuestion = /\?$/.test(text) || /\b(kya|what|how|why|when|where|kaise|kese|kyu|kyun)\b/i.test(text);
       const isKnowledge = /\b(how\s+to|what\s+is|react|typescript|javascript|hook|function|component|style|navigation|mmkv|sqlite|zustand|git)\b/i.test(text);

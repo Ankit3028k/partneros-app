@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">PartnerOSApp</string>
+    <string name="whatsapp_accessibility_description">Lets PartnerOS tap the Send button in WhatsApp after prefilling a message you asked it to send. Only acts when you explicitly trigger a send command.</string>
 </resources>
