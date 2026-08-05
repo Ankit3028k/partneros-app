@@ -2,6 +2,14 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+repositories {
+    google()
+    mavenCentral()
+    // Vosk speech recognition (used by VoskModule.kt, the wake-word fallback
+    // engine) is published here, not on Maven Central.
+    maven { url = uri("https://alphacephei.com/maven/") }
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -85,6 +93,12 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    // .tflite must stay uncompressed in the APK -- OpenWakeWordModule.kt
+    // memory-maps it directly via FileChannel, which requires the asset
+    // to be stored, not deflated.
+    aaptOptions {
+        noCompress "tflite"
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -110,6 +124,17 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    // Needed by AudioCaptureModule.kt (ContextCompat.checkSelfPermission)
+    implementation("androidx.core:core-ktx:1.13.1")
+
+    // Vosk -- fallback wake-word keyword-spotting engine (VoskModule.kt).
+    // JNA is Vosk's native-library-loading dependency.
+    implementation("com.alphacephei:vosk-android:0.3.47")
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
+
+    // TFLite -- preferred wake-word engine inference runtime (OpenWakeWordModule.kt).
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

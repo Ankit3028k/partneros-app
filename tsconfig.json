@@ -12,7 +12,8 @@
       "@partneros/llm": ["packages/llm/src"],
       "@partneros/app": ["packages/app/src"],
       "@partneros/planner": ["packages/planner/src"],
-      "@partneros/device": ["packages/device/src"]
+      "@partneros/device": ["packages/device/src"],
+      "@partneros/wakeword": ["packages/wakeword/src"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

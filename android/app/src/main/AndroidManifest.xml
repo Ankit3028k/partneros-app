@@ -19,6 +19,11 @@
         <package android:name="org.telegram.messenger" />
         <package android:name="com.google.android.apps.maps" />
         <package android:name="com.spotify.music" />
+        <!-- Android 11+ package visibility for SpeechRecognizerModule.kt's
+             SpeechRecognizer.isRecognitionAvailable() check -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
     </queries>
 
     <application
