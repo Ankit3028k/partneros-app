@@ -13,7 +13,8 @@
       "@partneros/app": ["packages/app/src"],
       "@partneros/planner": ["packages/planner/src"],
       "@partneros/device": ["packages/device/src"],
-      "@partneros/wakeword": ["packages/wakeword/src"]
+      "@partneros/wakeword": ["packages/wakeword/src"],
+      "@partneros/stt": ["packages/stt/src"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

@@ -14,6 +14,12 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { initializeApp } from '@partneros/app';
 import { PartnerOS } from '@partneros/app';
 import { PermissionPrompt } from '@partneros/app';
+import { VoiceSessionController } from '@partneros/app';
+import type { VoiceState } from '@partneros/app';
+import type { ProcessResult } from '@partneros/app';
+import { wakeWordService } from '@partneros/wakeword';
+import { androidSpeechRecognizer } from '@partneros/stt';
+import { eventBus } from '@partneros/core';
 
 type Message = {
   id: string;
@@ -22,6 +28,19 @@ type Message = {
   source?: string;
 };
 
+function voiceStateLabel(state: VoiceState): string {
+  switch (state) {
+    case 'listening_for_wakeword':
+      return 'Listening for "hey bro"...';
+    case 'listening_for_command':
+      return 'Listening...';
+    case 'processing':
+      return 'Thinking...';
+    default:
+      return 'Voice off';
+  }
+}
+
 function App(): React.JSX.Element {
   const [partnerOS, setPartnerOS] = useState<PartnerOS | null>(null);
   const [messages, setMessages] = useState<Message[]>([
@@ -29,6 +48,9 @@ function App(): React.JSX.Element {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceState>('idle');
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const voiceControllerRef = useRef<VoiceSessionController | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -37,6 +59,43 @@ function App(): React.JSX.Element {
       setPartnerOS(new PartnerOS());
     })();
   }, []);
+
+  // Wire wakeword:triggered -> STT -> PartnerOS.process() once PartnerOS
+  // is ready. Not auto-started -- user opts in via the mic toggle below,
+  // since it needs RECORD_AUDIO + will be denied otherwise.
+  useEffect(() => {
+    if (!partnerOS) return;
+
+    voiceControllerRef.current = new VoiceSessionController(wakeWordService, androidSpeechRecognizer, partnerOS);
+
+    const unsubState = eventBus.on<{ state: VoiceState }>('voice:state', ({ state }) => {
+      setVoiceState(state);
+    });
+    const unsubResponse = eventBus.on<ProcessResult>('voice:response', (result) => {
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now().toString(), text: result.message.content, role: 'assistant', source: result.source },
+      ]);
+    });
+
+    return () => {
+      unsubState();
+      unsubResponse();
+      void voiceControllerRef.current?.stop();
+    };
+  }, [partnerOS]);
+
+  const toggleVoice = async () => {
+    if (!voiceControllerRef.current) return;
+    if (voiceEnabled) {
+      await voiceControllerRef.current.stop();
+      setVoiceEnabled(false);
+      setVoiceState('idle');
+    } else {
+      await voiceControllerRef.current.start();
+      setVoiceEnabled(true);
+    }
+  };
 
   const sendMessage = async () => {
     const text = input.trim();
@@ -73,8 +132,18 @@ function App(): React.JSX.Element {
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>🤖 PartnerOS</Text>
-          <Text style={styles.headerSub}>On-Device AI</Text>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.headerText}>🤖 PartnerOS</Text>
+              <Text style={styles.headerSub}>{voiceEnabled ? voiceStateLabel(voiceState) : 'On-Device AI'}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.micButton, voiceEnabled && styles.micButtonActive]}
+              onPress={toggleVoice}
+            >
+              <Text style={styles.micText}>{voiceEnabled ? '🎙️' : '🎙'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -130,6 +199,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a2e' },
   flex: { flex: 1 },
   header: { backgroundColor: '#16213e', padding: 16, borderBottomWidth: 1, borderBottomColor: '#0f3460' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  micButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0f3460', justifyContent: 'center', alignItems: 'center' },
+  micButtonActive: { backgroundColor: '#e94560' },
+  micText: { fontSize: 18 },
   headerText: { color: '#e94560', fontSize: 20, fontWeight: 'bold' },
   headerSub: { color: '#aaa', fontSize: 12, marginTop: 2 },
   messageList: { flex: 1 },

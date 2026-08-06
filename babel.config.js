@@ -16,6 +16,7 @@ module.exports = {
           '@partneros/planner': './packages/planner/src',
           '@partneros/device': './packages/device/src',
           '@partneros/wakeword': './packages/wakeword/src',
+          '@partneros/stt': './packages/stt/src',
         },
       },
     ],

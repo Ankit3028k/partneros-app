@@ -97,9 +97,13 @@ export class VoiceSessionController {
 
     try {
       const processed = await this.partnerOS.process(result.text);
-      await eventBus.emit('voice:response', processed);
+      if (processed.ok) {
+        await eventBus.emit('voice:response', processed.value);
+      } else {
+        logger.error('PartnerOS.process returned error', { error: processed.error.message });
+      }
     } catch (error) {
-      logger.error('PartnerOS.process failed', { error: String(error) });
+      logger.error('PartnerOS.process threw', { error: String(error) });
     } finally {
       await this.resumeWakeWordListening();
     }
