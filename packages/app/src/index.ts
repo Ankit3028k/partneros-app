@@ -7,3 +7,4 @@ export { usePermissionStore } from './permissions/permissionStore';
 export type { MissingPermissionRequest } from './permissions/permissionStore';
 export { VoiceSessionController } from './VoiceSessionController';
 export type { VoiceState } from './VoiceSessionController';
+export { EnrollmentScreen } from './enrollment/EnrollmentScreen';

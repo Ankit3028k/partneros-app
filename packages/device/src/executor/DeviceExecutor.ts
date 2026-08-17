@@ -14,6 +14,7 @@ import { telegramAction } from '../actions/telegram';
 import { cameraAction } from '../actions/camera';
 import { phoneAction } from '../actions/phone';
 import { permissionManager } from '../PermissionManager';
+import { appLauncher } from '../AppLauncher';
 
 const logger = createLogger({ prefix: 'DeviceExecutor' });
 
@@ -50,6 +51,20 @@ export interface ExecutionPlan {
  */
 export class DeviceExecutor {
   async run(plan: ExecutionPlan): Promise<Result<DeviceActionResult>> {
+    // Plain "open X" with no further steps (no contact/message/etc.) --
+    // just launch the app generically. This was the Instagram bug: a
+    // simple open was being routed through the app's specific
+    // DeviceAction.execute(), which fails for every app whose action is
+    // still a stub (Instagram, Maps, Spotify, ...) even though the app
+    // is installed and AppLauncher could open it fine on its own.
+    const isSimpleOpen = plan.steps.length === 1 && plan.steps[0] === 'open_app';
+    if (isSimpleOpen) {
+      logger.info('Simple app open -- using AppLauncher directly', { app: plan.app });
+      const opened = await appLauncher.open(plan.app);
+      if (!opened.ok) return Result.err(opened.error);
+      return Result.ok({ message: `Opened ${plan.app}.` });
+    }
+
     const action = ACTION_REGISTRY[plan.app];
     if (!action) {
       return Result.err(new Error(`No DeviceAction registered for app "${plan.app}"`));

@@ -51,6 +51,7 @@
       <service
         android:name="com.partnerosapp.device.WhatsAppAccessibilityService"
         android:exported="false"
+        android:label="PartnerOS WhatsApp Assistant"
         android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
         <intent-filter>
           <action android:name="android.accessibilityservice.AccessibilityService" />

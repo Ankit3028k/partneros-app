@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -15,10 +16,13 @@ import { initializeApp } from '@partneros/app';
 import { PartnerOS } from '@partneros/app';
 import { PermissionPrompt } from '@partneros/app';
 import { VoiceSessionController } from '@partneros/app';
+import { EnrollmentScreen } from '@partneros/app';
 import type { VoiceState } from '@partneros/app';
 import type { ProcessResult } from '@partneros/app';
 import { wakeWordService } from '@partneros/wakeword';
+import { speakerEnrollment } from '@partneros/wakeword';
 import { androidSpeechRecognizer } from '@partneros/stt';
+import { permissionManager } from '@partneros/device';
 import { eventBus } from '@partneros/core';
 
 type Message = {
@@ -50,6 +54,7 @@ function App(): React.JSX.Element {
   const [loading, setLoading] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [showEnrollment, setShowEnrollment] = useState(false);
   const voiceControllerRef = useRef<VoiceSessionController | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -87,13 +92,43 @@ function App(): React.JSX.Element {
 
   const toggleVoice = async () => {
     if (!voiceControllerRef.current) return;
+
     if (voiceEnabled) {
       await voiceControllerRef.current.stop();
       setVoiceEnabled(false);
       setVoiceState('idle');
-    } else {
+      return;
+    }
+
+    // Mic permission is required before touching AudioRecord at all --
+    // check/request it here rather than letting the native start() call
+    // fail silently.
+    const micGranted = await permissionManager.request('MICROPHONE');
+    if (!micGranted) {
+      Alert.alert('Microphone permission needed', 'Voice mode needs mic access to listen for "hey bro".');
+      return;
+    }
+
+    // No voice enrollment yet -> WakeWordService.start() throws
+    // immediately with nothing shown to the user. Offer to enroll right
+    // here instead of just failing.
+    if (!speakerEnrollment.hasEnrollment()) {
+      Alert.alert(
+        'Voice not set up yet',
+        'You need to enroll your voice saying "hey bro" a few times before voice mode works.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Set up now', onPress: () => setShowEnrollment(true) },
+        ],
+      );
+      return;
+    }
+
+    try {
       await voiceControllerRef.current.start();
       setVoiceEnabled(true);
+    } catch (error) {
+      Alert.alert('Could not start voice mode', String(error instanceof Error ? error.message : error));
     }
   };
 
@@ -191,6 +226,22 @@ function App(): React.JSX.Element {
         </KeyboardAvoidingView>
       </SafeAreaView>
       <PermissionPrompt />
+      <EnrollmentScreen
+        visible={showEnrollment}
+        onClose={() => setShowEnrollment(false)}
+        onEnrolled={() => {
+          // Voiceprint now exists -- close the modal and offer to jump
+          // straight into voice mode rather than making the user press
+          // the mic button a second time.
+          setTimeout(() => {
+            setShowEnrollment(false);
+            Alert.alert('Voice enrolled', 'Start voice mode now?', [
+              { text: 'Later', style: 'cancel' },
+              { text: 'Start', onPress: () => void toggleVoice() },
+            ]);
+          }, 800);
+        }}
+      />
     </SafeAreaProvider>
   );
 }
